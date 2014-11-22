@@ -145,6 +145,10 @@ alter table user_session
 add CONSTRAINT user_session_fk1 FOREIGN KEY (user_id) REFERENCES user(id),
 add CONSTRAINT user_session_unique1 UNIQUE KEY(session_id);
 
-
+drop table if exists patient;
+create table if not exists patient(
+	id bigint(20) not null auto_increment,
+	
+)ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 	
 
