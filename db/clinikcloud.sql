@@ -15,7 +15,6 @@ create table if not exists hospital_speciality(
 	primary key(hospital_speciality_id)
 )ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
-
 drop table if exists hospital;
 create table if not exists hospital(
 	hospital_id bigint(20) not null auto_increment,
@@ -23,26 +22,11 @@ create table if not exists hospital(
 	logo_file varchar(2048),
 	phone varchar(20),
 	email varchar(256),
-	customer_care_no varchar(20),
-	is_multi_speciality boolean default false,
-	primary key(id)
-)ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
-
-drop table if exists hospital_branch;
-create table if not exists hospital_branch(
-	hospital_branch_id bigint(20) not null auto_increment,
-	hospital_id bigint(20) not null,
-	name varchar(512),
 	address varchar(2048),
-	phone varchar(200),
-	email varchar(2048),
 	customer_care_no varchar(20),
-	is_main_branch boolean default false,
 	is_multi_speciality boolean default false,
-	primary key(hospital_branch_id)
+	primary key(hospital_id)
 )ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
-alter table hospital_branch
-	add constraint hospital_branch_fk1 foreign key(hospital_id) references hospital(hospital_id);
 	
 drop table if exists speciality;
 create table if not exists speciality(
@@ -57,10 +41,14 @@ alter table speciality
 drop table if exists hospital_speciality_map;
 create table if not not exists  hospital_speciality_map(
 	hospital_speciality_map_id bigint(20) not null auto_increment,
-	hospital_branch_id bigint(20) not null ,
+	hospital__id bigint(20) not null ,
 	speciality_id int not null,
 	primary key(hospital_speciality_map_id)
 )ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1;
+
+alter table hospital_speciality_map
+	add constraint speciality_map_fk1 foreign key(hospital__id) references hospital(hospital__id),
+	add constraint speciality_map_fk1 foreign key(speciality_id) references speciality(speciality_id);
 
 
 DROP TABLE IF EXISTS user_type;
@@ -132,6 +120,19 @@ alter table doctor
 	add constraint doctor_fk2 foreign key(user_type_id) references user_type(user_type_id),
 	add constraint doctor_fk3 foreign key(user_id,user_type_id) references user_type_mapping(user_id,user_type_id);
 	
+drop table if exists nurse;
+create table if not exists nurse(
+	nurse_id bigint(20) not null auto_increment,
+	user_id bigint(20) not null,
+	user_type_id int not null default 2 CHECK (user_type_id = 3),
+	nurse_degree varchar(256),
+	primary key(nurse_id)
+)ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+	
+alter table doctor
+	add CONSTRAINT doctor_fk1 foreign key(user_id) references user(user_id),
+	add constraint doctor_fk2 foreign key(user_type_id) references user_type(user_type_id),
+	add constraint doctor_fk3 foreign key(user_id,user_type_id) references user_type_mapping(user_id,user_type_id);
 	
   DROP TABLE IF EXISTS user_session;
 CREATE TABLE if not exists user_session (
@@ -147,8 +148,93 @@ add CONSTRAINT user_session_unique1 UNIQUE KEY(session_id);
 
 drop table if exists patient;
 create table if not exists patient(
-	id bigint(20) not null auto_increment,
-	
+	patient_id bigint(20) not null auto_increment,
+	first_name varchar(64) not null,
+	last_name varchar(64) not null,
+	dob timestamp null,
+	sex CHAR(1) CHECK (sex IN ('M', 'F')),
+	address varchar(2048),
+	phone varchar(20),
+	email varchar(1028),
+	insurance_info varchar(2048),
+	emergency_contact_no varchar(20),
+	religion varchar(64),
+	create_time timestamp default current_timestamp,
+	primary key(patient_id)
 )ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+
+drop table if exists hospital_bed;
+create table if not exists hospital_bed(
+	hospital_bed_id bigint(20) not null auto_increment,
+	hospital_id bigint(20) not null,
+	hospital_floor_no int,
+	hospital_floor_name varchar(32),
+	ward_no int,
+	ward_name varchar(128),
+	bed_no varchar(32),
+	primary key(hospital_bed_id)
+)ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+
+drop table if exists in_patient;
+create table if not exists in_patient(
+	in_patient_id bigint(20) not null auto_increment,
+	patient bigint(20) not null,
+	hospital_bed bigint(20) not null,
+	admit_date timestamp,
+	discharge_date timestamp,
+	doctor_incharge bigint(20),
+	nurse_incharge bigint(20),
+	create_date timestamp default current_timestamp,
+	primary key(in_patient_id)
+)ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+	
+alter table in_patient
+	add constraint in_patient_fk1 foreign key(patient) references patient(patient_id),
+	add constraint in_patient_fk2 foreign key(hospital_bed) references in_patient(hospital_bed_id),
+	add constraint in_patient_fk3 foreign key(doctor_incharge) references doctor(doctor_id),
+	add constraint nurse_incharge_fk4 foreign key(nurse_incharge) references nurse(nurse_id);
+	
+drop table if exists in_patient_visit;
+create table if not exists in_patient_visit(
+	in_patient_visit_id bigint(20) not null auto_increment,
+	in_patient bigint(20) not null,
+	visiting_doctor bigint(20),
+	visiting_nurse bigint(20),
+	visit_type varchar(256),
+	doctor_note text,
+	nurse_note text,
+	medicine_prescribed text,
+	visit_time timestamp,
+	visit_duration long,
+	visit_start_time timestamp,
+	visit_end_time timestamp,
+	primary key(in_patient_visit_id)
+)ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+
+alter table in_patient_visit
+	add constraint in_patient_visit_fk1 foreign key(in_patient) references in_patient(in_patient_id),
+	add constraint in_patient_visit_fk2 foreign key(visiting_doctor) references doctor(doctor_id),
+	add constraint in_patient_visit_fk3 foreign key(visiting_nurse) references nurse(nurse_id);
+
+drop table if exists out_patient;
+create table if not exists out_patient(
+	out_patient_id bigint(20) not null auto_increment,
+	out_patient bigint(20) not null,
+	visiting_doctor bigint(20) not null,
+	visiting_nurse bigint(20),
+	visit_start_time timestamp,
+	visit_end_time timestamp,
+	visit_duration long,
+	doctor_note text,
+	nurse_note text,
+	medicine_prescribed text,
+	main_disease varchar(256),
+	primary key(out_patient_id)
+)ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+
+alter table out_patient
+	add constraint out_patient_fk1 foreign key(out_patient) references patient(patient_id),
+	add constraint out_patient_fk2 foreign key(visiting_doctor) references doctor(doctor_id),
+	add constraint out_patient_fk3 foreign key(visiting_nurse) references nurse(nurse_id);
 	
 
