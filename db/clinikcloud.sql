@@ -39,7 +39,7 @@ alter table speciality
 	
 	
 drop table if exists hospital_speciality_map;
-create table if not not exists  hospital_speciality_map(
+create table if not exists  hospital_speciality_map(
 	hospital_speciality_map_id bigint(20) not null auto_increment,
 	hospital__id bigint(20) not null ,
 	speciality_id int not null,
@@ -90,8 +90,7 @@ create table if not exists ccuser(
   )ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
   
   ALTER TABLE ccuser
-  	add CONSTRAINT ccuser_uk1 UNIQUE KEY(username),
-  	add constraint ccuser_fk1 foreign key(hospital_branch_id) references hospital_branch(hospital_branch_id);
+  	add CONSTRAINT ccuser_uk1 UNIQUE KEY(username);
   	
 drop table if exists user_type_mapping;
 create table if not exists user_type_mapping(
@@ -116,7 +115,7 @@ create table if not exists doctor(
 )ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 alter table doctor
-	add CONSTRAINT doctor_fk1 foreign key(user_id) references user(user_id),
+	add CONSTRAINT doctor_fk1 foreign key(user_id) references ccuser(user_id),
 	add constraint doctor_fk2 foreign key(user_type_id) references user_type(user_type_id),
 	add constraint doctor_fk3 foreign key(user_id,user_type_id) references user_type_mapping(user_id,user_type_id);
 	
@@ -129,10 +128,10 @@ create table if not exists nurse(
 	primary key(nurse_id)
 )ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 	
-alter table doctor
-	add CONSTRAINT doctor_fk1 foreign key(user_id) references user(user_id),
-	add constraint doctor_fk2 foreign key(user_type_id) references user_type(user_type_id),
-	add constraint doctor_fk3 foreign key(user_id,user_type_id) references user_type_mapping(user_id,user_type_id);
+alter table nurse
+	add CONSTRAINT nurse_fk1 foreign key(user_id) references ccuser(user_id),
+	add constraint nurse_fk2 foreign key(user_type_id) references user_type(user_type_id),
+	add constraint nurse_fk3 foreign key(user_id,user_type_id) references user_type_mapping(user_id,user_type_id);
 	
   DROP TABLE IF EXISTS user_session;
 CREATE TABLE if not exists user_session (
@@ -143,7 +142,7 @@ CREATE TABLE if not exists user_session (
 	PRIMARY KEY(ID)
 )ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 alter table user_session
-add CONSTRAINT user_session_fk1 FOREIGN KEY (user_id) REFERENCES user(id),
+add CONSTRAINT user_session_fk1 FOREIGN KEY (user_id) REFERENCES ccuser(user_id),
 add CONSTRAINT user_session_unique1 UNIQUE KEY(session_id);
 
 drop table if exists patient;
@@ -153,12 +152,15 @@ create table if not exists patient(
 	last_name varchar(64) not null,
 	dob timestamp null,
 	sex CHAR(1) CHECK (sex IN ('M', 'F')),
-	address varchar(2048),
+	local_address varchar(2048),
+	permanent_address varchar(2048),
 	phone varchar(20),
 	email varchar(1028),
 	insurance_info varchar(2048),
-	emergency_contact_no varchar(20),
 	religion varchar(64),
+	nationality varchar(64),
+	passport_no varchar(64),
+	emergency_contact_no varchar(20),
 	create_time timestamp default current_timestamp,
 	primary key(patient_id)
 )ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
@@ -190,7 +192,7 @@ create table if not exists in_patient(
 	
 alter table in_patient
 	add constraint in_patient_fk1 foreign key(patient) references patient(patient_id),
-	add constraint in_patient_fk2 foreign key(hospital_bed) references in_patient(hospital_bed_id),
+	add constraint in_patient_fk2 foreign key(hospital_bed) references hospital_bed(hospital_bed_id),
 	add constraint in_patient_fk3 foreign key(doctor_incharge) references doctor(doctor_id),
 	add constraint nurse_incharge_fk4 foreign key(nurse_incharge) references nurse(nurse_id);
 	
@@ -236,5 +238,41 @@ alter table out_patient
 	add constraint out_patient_fk1 foreign key(out_patient) references patient(patient_id),
 	add constraint out_patient_fk2 foreign key(visiting_doctor) references doctor(doctor_id),
 	add constraint out_patient_fk3 foreign key(visiting_nurse) references nurse(nurse_id);
-	
 
+drop table if exists billing_type;
+create table if not exists billing_type(
+	billing_type_id bigint(20) not null auto_increment,
+	bill_type varchar(256) not null,
+	per_unit_charge double not null,
+	bill_note varchar(2048),
+	primary key(billing_type_id)
+)ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+
+drop table if exists patient_com_bill;
+create table if not exists patient_com_bill(
+	patient_com_bill_id bigint(20) not null auto_increment,
+	patient bigint(20) not null,
+	bill_create_date timestamp default current_timestamp,
+	total_bill double not null,
+	amount_paid double not null,
+	mode_of_payment double,
+	note varchar(2048),
+	primary key(patient_com_bill_id)
+)ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+
+alter table patient_com_bill
+	add constraint patient_com_bill_fk1 foreign key(patient) references patient(patient_id);
+	
+drop table if exists patient_bill;
+create table if not exists patient_bill(
+	patient_bill_id bigint(20) not null auto_increment,
+	patient_com_bill bigint(20) not null,
+	billing_type bigint(20) not null,
+	unit float not null,
+	bill_amount double not null,
+	primary key(patient_bill_id)
+)ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+	
+alter table patient_bill
+	add constraint patient_bill_fk1 foreign key(patient_com_bill) references patient_com_bill(patient_com_bill_id),
+	add constraint patient_bill_fk2 foreign key(billing_type) references billing_type(billing_type_id);
