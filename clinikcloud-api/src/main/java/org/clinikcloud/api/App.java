@@ -1,4 +1,4 @@
-package org.clinikcloud.api;
+package com.clinikcloud.api;
 
 /**
  * Hello world!
