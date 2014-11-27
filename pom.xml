@@ -10,6 +10,6 @@
     <module>clinikcloud-data</module>
     <module>clinikcloud-service</module>
     <module>clinikcloud-api</module>
-    <module>clinikcloud-web</module>
+   
   </modules>
 </project>
